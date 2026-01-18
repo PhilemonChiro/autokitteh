@@ -6,35 +6,44 @@ services:
     command:
       - up
       - --mode=dev
-      - -C
-      - http.service_url=https://autokitteh.lovelane.co.zw
     ports:
       - 9980:9980
       - 9982:9982
     labels:
-      # Backend API (port 9980) on autokitteh.lovelane.co.zw
-      - traefik.http.routers.ak-backend-web.rule=Host(`autokitteh.lovelane.co.zw`)
-      - traefik.http.routers.ak-backend-web.entrypoints=web
-      - traefik.http.routers.ak-backend-web.middlewares=redirect-to-https@file
-      - traefik.http.routers.ak-backend-web.service=ak-backend
+      # All on same domain: autokitteh.lovelane.co.zw
+      # Backend gets all /autokitteh.* paths (gRPC-web calls)
+      - traefik.http.routers.ak-grpc.rule=Host(`autokitteh.lovelane.co.zw`) && PathPrefix(`/autokitteh.`)
+      - traefik.http.routers.ak-grpc.entrypoints=websecure
+      - traefik.http.routers.ak-grpc.tls.certresolver=letsencrypt
+      - traefik.http.routers.ak-grpc.service=ak-backend
+      - traefik.http.routers.ak-grpc.priority=100
 
-      - traefik.http.routers.ak-backend-secure.rule=Host(`autokitteh.lovelane.co.zw`)
-      - traefik.http.routers.ak-backend-secure.entrypoints=websecure
-      - traefik.http.routers.ak-backend-secure.tls.certresolver=letsencrypt
-      - traefik.http.routers.ak-backend-secure.service=ak-backend
+      - traefik.http.routers.ak-internal.rule=Host(`autokitteh.lovelane.co.zw`) && PathPrefix(`/internal`)
+      - traefik.http.routers.ak-internal.entrypoints=websecure
+      - traefik.http.routers.ak-internal.tls.certresolver=letsencrypt
+      - traefik.http.routers.ak-internal.service=ak-backend
+      - traefik.http.routers.ak-internal.priority=100
+
+      - traefik.http.routers.ak-auth.rule=Host(`autokitteh.lovelane.co.zw`) && PathPrefix(`/auth`)
+      - traefik.http.routers.ak-auth.entrypoints=websecure
+      - traefik.http.routers.ak-auth.tls.certresolver=letsencrypt
+      - traefik.http.routers.ak-auth.service=ak-backend
+      - traefik.http.routers.ak-auth.priority=100
 
       - traefik.http.services.ak-backend.loadbalancer.server.port=9980
 
-      # Frontend Admin UI (port 9982) on autokittehadmin.lovelane.co.zw
-      - traefik.http.routers.ak-frontend-web.rule=Host(`autokittehadmin.lovelane.co.zw`)
-      - traefik.http.routers.ak-frontend-web.entrypoints=web
-      - traefik.http.routers.ak-frontend-web.middlewares=redirect-to-https@file
-      - traefik.http.routers.ak-frontend-web.service=ak-frontend
+      # Frontend catches everything else (lower priority)
+      - traefik.http.routers.ak-frontend-http.rule=Host(`autokitteh.lovelane.co.zw`)
+      - traefik.http.routers.ak-frontend-http.entrypoints=web
+      - traefik.http.routers.ak-frontend-http.middlewares=redirect-to-https@file
+      - traefik.http.routers.ak-frontend-http.service=ak-frontend
+      - traefik.http.routers.ak-frontend-http.priority=1
 
-      - traefik.http.routers.ak-frontend-secure.rule=Host(`autokittehadmin.lovelane.co.zw`)
-      - traefik.http.routers.ak-frontend-secure.entrypoints=websecure
-      - traefik.http.routers.ak-frontend-secure.tls.certresolver=letsencrypt
-      - traefik.http.routers.ak-frontend-secure.service=ak-frontend
+      - traefik.http.routers.ak-frontend.rule=Host(`autokitteh.lovelane.co.zw`)
+      - traefik.http.routers.ak-frontend.entrypoints=websecure
+      - traefik.http.routers.ak-frontend.tls.certresolver=letsencrypt
+      - traefik.http.routers.ak-frontend.service=ak-frontend
+      - traefik.http.routers.ak-frontend.priority=1
 
       - traefik.http.services.ak-frontend.loadbalancer.server.port=9982
 
